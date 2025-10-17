@@ -38,6 +38,8 @@ public class AddressablesPaginationManager : Singleton<AddressablesPaginationMan
     [SerializeField] private int currentCooldownThreshold;
     [SerializeField] private int maxCooldownThreshold;
 
+    public bool isConnected = false;
+
     private void Start()
     {
         StartCoroutine(UnloadPanels(currentOffset));
@@ -58,6 +60,8 @@ public class AddressablesPaginationManager : Singleton<AddressablesPaginationMan
         if (request.result == UnityWebRequest.Result.Success)
         {
             Debug.Log("Request loaded successfully.");
+            isConnected = true;
+
             currentOffset = pagesContainer.childCount;
             StartCoroutine(ShowPanel(json.records));
         }
