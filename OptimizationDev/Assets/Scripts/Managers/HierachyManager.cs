@@ -16,7 +16,7 @@ public class HierachyManager : Singleton<HierachyManager>
 
     private IEnumerator UnloadAssets()
     {
-        yield return AddressablesPaginationManager.Instance.isConnected;
+        yield return AddressablesPaginationManager.Instance.isConnected; 
 
         canvasHolder.SetActive(true);
     }
