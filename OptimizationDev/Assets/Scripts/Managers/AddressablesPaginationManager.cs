@@ -1,13 +1,8 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-<<<<<<< Updated upstream
-using UnityEngine.AddressableAssets;
-using UnityEngine.Networking;
-using UnityEngine.ResourceManagement.AsyncOperations;
-=======
 using UnityEngine.UI;
->>>>>>> Stashed changes
 
 [System.Serializable]
 public class Profile
@@ -25,16 +20,6 @@ public class ProfileDataFetch
 
 public sealed class AddressablesPaginationManager : Singleton<AddressablesPaginationManager>
 {
-<<<<<<< Updated upstream
-
-    [Header("Elements Settings - Predefined Values")]
-
-    [SerializeField] private int panelsToLoad = 20;
-    [SerializeField] private int totalProfiles;
-    [SerializeField] private string profileAssetKey;
-    [SerializeField] private int currentOffset;
-    [Header("Elements Settings - Holders")]
-=======
     public PaginationStates paginationStates;
 
     [Header("Elements Settings - Predefined Values") ,Tooltip("Predefined Values For Loading Elements/Clamping Values/Scroll Rect Loading")]
@@ -43,28 +28,26 @@ public sealed class AddressablesPaginationManager : Singleton<AddressablesPagina
     [SerializeField] private int totalProfiles;
     private int currentOffset;
     private int targetOffset;
->>>>>>> Stashed changes
 
+    [Range(0f, 1f)] [SerializeField] private float scrollRectSensivity = 0.1f;
+    [Range(0f, 1f)] [SerializeField] private float scrollRectSensivityUp = 0.95f;
+
+    [Header("Elements Settings - Holders"), Tooltip("Holder References For UI Elements.")]
+
+    [SerializeField] private Button loadPreviousPanelsButton;
+    [SerializeField] private ScrollRect panelsScrollRect;
+    [SerializeField] private Vector2 panelsScrollRectPos;
     [SerializeField] private Transform pagesContainer;
-<<<<<<< Updated upstream
-    public Config config;
-=======
->>>>>>> Stashed changes
 
     [Header("Other Settings - Cooldown Values")]
 
-    [SerializeField] private int currentCooldownThreshold;
+    [SerializeField] private int currentCooldownThresholdUnloadingPanels;
+    [SerializeField] private int currentCooldownThresholdLoadingPanels;
     [SerializeField] private int maxCooldownThreshold;
 
     #region Private References
 
     public bool isConnected = false;
-<<<<<<< Updated upstream
-
-    private void Start()
-    {
-        StartCoroutine(UnloadPanels(currentOffset));
-=======
     private bool isLoadingNext = false;
     private bool isLoadingPrevious = false;
     private bool hasLoaded = false;
@@ -89,65 +72,27 @@ public sealed class AddressablesPaginationManager : Singleton<AddressablesPagina
         targetOffset = currentOffset;
         loadPreviousPanelsButton.gameObject.SetActive(false);
         StartCoroutine(LoadNextPage(currentOffset, false));
->>>>>>> Stashed changes
     }
 
-    private IEnumerator UnloadPanels(int offset)
+    private void OnEnable()
     {
-        UnityWebRequest request = new UnityWebRequest(config.titleURL, config.method);
-        request.downloadHandler = new DownloadHandlerBuffer();
-        request.SetRequestHeader("Content-Type", "application/json");
-
-        yield return request.SendWebRequest();
-
-        Debug.Log($"Successfully sent a request to {config.titleURL}. Awaiting result.");
-
-        ProfileDataFetch json = JsonUtility.FromJson<ProfileDataFetch>(request.downloadHandler.text);
-
-        if (request.result == UnityWebRequest.Result.Success)
+        if (panelsScrollRect != null && loadPreviousPanelsButton != null)
         {
-            Debug.Log("Request loaded successfully.");
-            isConnected = true;
-
-            currentOffset = pagesContainer.childCount;
-            StartCoroutine(ShowPanel(json.records));
+            panelsScrollRect.onValueChanged.AddListener(OnScrollViewChanged);
+            loadPreviousPanelsButton.onClick.AddListener(OnPreviousButtonClicked);
         }
-
-        else
+    }
+    private void OnDisable()
+    {
+        if(panelsScrollRect != null && loadPreviousPanelsButton != null)
         {
-            Debug.LogError("Unavailable to unload panels. Retrying again...");
-            RetryUnloadingPanels();
-            yield return null;
+            panelsScrollRect.onValueChanged.RemoveListener(OnScrollViewChanged);
+            loadPreviousPanelsButton.onClick.RemoveListener(OnPreviousButtonClicked);
         }
 
         ProfileBuilderService.Instance.Cleanup();
     }
 
-<<<<<<< Updated upstream
-    void RetryUnloadingPanels()
-    {
-        currentCooldownThreshold++;
-
-        if(maxCooldownThreshold > currentCooldownThreshold)
-        {
-            Debug.Log($"Unloading panels... Attempt {currentCooldownThreshold}.");
-            StartCoroutine(UnloadPanels(currentOffset));
-        }
-
-        else
-        {
-            Debug.Log($"Unavailable to load panels. Please check your connection and try again.");
-            return;
-        }
-    }
-
-    private IEnumerator ShowPanel(List<Profile> totalRecords)
-    {
-        foreach(var menu in totalRecords)
-        {
-            AsyncOperationHandle<GameObject> handle = Addressables.InstantiateAsync(profileAssetKey, pagesContainer);
-            yield return handle;
-=======
     #region Loading Pages
 
     private IEnumerator LoadNextPage(int offset, bool isScrollingUp)
@@ -178,6 +123,8 @@ public sealed class AddressablesPaginationManager : Singleton<AddressablesPagina
                             Debug.Log($"[Setup Panel] : Builded UI page successfully.");
                             targetOffset = currentOffset;
                         }, hasLoaded, totalProfiles, currentOffset, pagesContainer));
+
+               
 
                         StartCoroutine(ResetBoolean(0.05f, () => isLoadingNext = false));
                         
@@ -228,17 +175,18 @@ public sealed class AddressablesPaginationManager : Singleton<AddressablesPagina
             RetryLoaderService.Instance.RetryLoadingPanels(ref currentCooldownThresholdLoadingPanels, maxCooldownThreshold, currentOffset, LoadPreviousPage);
         }
     }
->>>>>>> Stashed changes
 
-            if(handle.Status == AsyncOperationStatus.Succeeded)
+    void ResetCurrentOffsetOutOfRange(int startLimit)
+    {
+        try
+        {
+            for (int i = 0; i < pagesContainer.childCount; i++)
             {
-                GameObject profile = handle.Result;
-                var profileInit = profile.GetComponent<MenuPageUI>();
-                profileInit.Init(menu);
+                if (pagesContainer.GetChild(i).gameObject.activeSelf)
+                {
+                    startLimit++;
+                }
             }
-<<<<<<< Updated upstream
-        }
-=======
 
             if (pagesContainer.childCount >= totalProfiles && currentOffset > startLimit)
             {
@@ -296,7 +244,6 @@ public sealed class AddressablesPaginationManager : Singleton<AddressablesPagina
     private void OnDestroy()
     {
         ProfileBuilderService.Instance.Cleanup();
->>>>>>> Stashed changes
     }
 }
 
